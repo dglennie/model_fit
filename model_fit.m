@@ -2,14 +2,14 @@ function [] = model_fit()
 %MODEL_FIT Summary of this function goes here
 %   Employs fitting algorithm and 1D DRS model to extract chromophore
 %   concentrations from total diffuse reflectance spectrum from skin
-
+global lambda
 % Step 1: Determine location of files and files to process
 
 % Step 1.1: Get list of files from selected folder
 [pathname, filenames] = select_folder;
 
 % Step 1.2: Get lambda
-
+load('wavelength.mat')
 
 % For each file,
 i=1;
