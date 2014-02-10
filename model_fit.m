@@ -17,8 +17,8 @@ else
 end
 
 % For each file,
- i=1;
-for i=1:length(filenames)
+
+for i=1:1 %length(filenames)
    current_filename = filenames{i};
    
    % Check if current file contains calibration or background measurement
