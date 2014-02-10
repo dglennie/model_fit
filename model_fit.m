@@ -3,14 +3,18 @@ function [] = model_fit()
 %   Employs fitting algorithm and 1D DRS model to extract chromophore
 %   concentrations from total diffuse reflectance spectrum from skin
 
-global lambda
-
 % Step 1: Determine location of files and files to process
 
 % Step 1.1: Get list of files from selected folder
 [pathname, filenames] = select_folder;
 
-% Step 1.2: Get lambda
+% Step 1.2: Check for background and calibration files
+if exist(cell2mat(strfind(filenames, 'black')))~=0 && exist(cell2mat(strfind(filenames, 'white')))~=0
+    %determine black & white spectra
+else
+    error('One or more of the calibration files is missing. (black.Master.Scope or white.Master.Scope)')
+end
+% Step 1.3: Get lambda
 load('wavelength.mat')
 
 % For each file,
