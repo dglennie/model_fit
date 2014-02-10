@@ -8,17 +8,14 @@ function [] = model_fit()
 % Step 1.1: Get list of files from selected folder
 [pathname, filenames] = select_folder;
 
-% Step 1.2: Get lambda
-
-
 % For each file,
 i=1;
 %for i=1:length(filenames)
-    current_filename = filenames{i};
+    current_file=strcat(pathname,filenames{i});
     
     % Check if current file contains calibration or background measurement
-    b = strfind(current_filename, 'black');
-    w = strfind(current_filename, 'white');
+    b = strfind(current_file, 'black');
+    w = strfind(current_file, 'white');
     
     if isempty(b) && isempty(w) % If file doesn't contain cal or bg, continue
         % Step 2: Process the measured data in current file
