@@ -8,10 +8,10 @@ function [] = model_fit()
 
 end
 
-function [pathname, strucell2] = select_folder
+function [pathcat, strucell2] = select_folder
 
 folder_name = uigetdir;
-pathname = strcat(folder_name,'\');
+pathcat = strcat(folder_name,'\');
 files = dir(folder_name);
 
 strucell = struct2cell(files);
