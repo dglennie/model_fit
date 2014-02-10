@@ -10,12 +10,10 @@ function [] = model_fit()
 
 % Step 1.2: Check for background and calibration files
 if exist(cell2mat(strfind(filenames, 'black')))~=0 && exist(cell2mat(strfind(filenames, 'white')))~=0
-    %determine black & white spectra
+    %determine black & white spectra & lambda
 else
     error('One or more of the calibration files is missing. (black.Master.Scope or white.Master.Scope)')
 end
-% Step 1.3: Get lambda
-load('wavelength.mat')
 
 % For each file,
 i=1;
