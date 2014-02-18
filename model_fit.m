@@ -8,8 +8,7 @@ function [lambda,black,white] = model_fit()
 % Step 1.1: Get list of files from selected folder
 [pathname, filenames] = select_folder;
 
-% Step 1.2: Check for background and calibration files, calc spectra if
-% present
+% Step 1.2: Check for background and calibration files, extract spectra if present
 if cell2mat(strfind(filenames, 'black')) ~= 0 && cell2mat(strfind(filenames, 'white')) ~= 0
     [lambda, black, white] = get_bgcal(pathname, filenames); %% determine black & white spectra & lambda
 else
@@ -28,7 +27,7 @@ for i=1:1 %length(filenames)
    if isempty(b) && isempty(w) % If file doesn't contain cal or bg, continue
        % Step 2: Process the measured data in current file
        % Step 2.1: Retrieve the modified measured reflectance
-%         rmstar = calc_rmeas(pathname, current_filename);
+       rmstar = calc_rmeas(pathname, current_filename, black, white);
        
        % Step 2.2: Correct for substitution error
        % Step 2.3: Determine uncertainty?
@@ -39,6 +38,8 @@ for i=1:1 %length(filenames)
    else
        % Skip this file
    end
+   
+
 end
 
 end
@@ -83,13 +84,15 @@ wht2=wht(453:1069);
 
 end
 
-% function rmeas = calc_rmeas(path, file)
+function rmeas = calc_rmeas(path, file, bkg, cal)
 % % CALC_RMEAS Retrieve the modified measured reflectance from Master.Scope
 % % files
 % 
-% file = strcat(pathname,filename);
-% data = dlmread(file,'	', [19,0,2066,1]); % reads in the spectra values, tabs delimited
-% int_time = dlmread(file,' ', [6,3,6,3]); % reads in the integration time, space delimited
-% spec = (data(:,2)/(int_time/1000))';
-% 
-% end
+curfile = strcat(path,file);
+data = dlmread(curfile,'	', [19,0,2066,1]); % reads in the spectra values, tabs delimited
+inttime = dlmread(curfile,' ', [6,3,6,3]); % reads in the integration time, space delimited
+spec = (data(:,2)/(inttime/1000))';
+spec2 = spec(453:1069);
+rmeas = (spec2 - bkg)./(cal - bkg);
+
+end
