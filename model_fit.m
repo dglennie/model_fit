@@ -15,6 +15,8 @@ else
     error('One or more of the calibration files is missing. (black.Master.Scope or white.Master.Scope)')
 end
 
+load('sbse_coeffs.mat')
+
 % For each file,
 
 for i=1:1 %length(filenames)
@@ -30,6 +32,8 @@ for i=1:1 %length(filenames)
        rmstar = calc_rmeas(pathname, current_filename, black, white);
        
        % Step 2.2: Correct for substitution error
+       rm = corr_sbse(rmstar, sbse_coeffs);
+       
        % Step 2.3: Determine uncertainty?
        
        % Step 3: Fit model to measured data
@@ -94,5 +98,11 @@ inttime = dlmread(curfile,' ', [6,3,6,3]); % reads in the integration time, spac
 spec = (data(:,2)/(inttime/1000))';
 spec2 = spec(453:1069);
 rmeas = (spec2 - bkg)./(cal - bkg);
+
+end
+
+function rcorr = corr_sbse(rmeas, coeff)
+
+rcorr = ((coeff(:,1).*rmeas' + coeff(:,2))./(rmeas' + coeff(:,3)))';
 
 end
