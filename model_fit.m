@@ -16,6 +16,7 @@ else
 end
 
 load('sbse_coeffs.mat')
+load('model_params.mat')
 
 % For each file,
 
@@ -37,6 +38,7 @@ for i=1:1 %length(filenames)
        % Step 2.3: Determine uncertainty?
        
        % Step 3: Fit model to measured data
+       %rdscat = calc_rd(conc,mua_param,musp)
        % Step 3.1: Determine coefficients using 'lsqcurvefit'
        % Step 3.2: Determine confidence interval using 'nlparci'
    else
@@ -104,5 +106,23 @@ end
 function rcorr = corr_sbse(rmeas, coeff)
 
 rcorr = ((coeff(:,1).*rmeas' + coeff(:,2))./(rmeas' + coeff(:,3)))';
+
+end
+
+function rdscat = calc_rd(beta,params,musp)
+%RDSCAT Calculate diffuse reflectance with added scatter losses
+
+% Step 1: Calculate diffuse reflectance using model
+mua = beta(1)*params(1,:) + (beta(1)/beta(2) - beta(1))*params(2,:) + beta(3)*params(3,:) + beta(4)*params(4,:) + beta(5);
+
+mutp = mua + musp;
+mueff = sqrt(3.*mua.*mutp);
+D = 1./(3.*mutp);
+
+%A = 2.348; % for an nrel = 1.33 (for water)
+A = 2.745; % for an nrel = 1.4 (for tissue)
+
+rdcalc = musp./((mutp + mueff).*(1 + 2.*A.*D.*mueff));
+
 
 end
