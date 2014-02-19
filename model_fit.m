@@ -113,7 +113,7 @@ function rdscat = calc_rd(beta,params,musp)
 %RDSCAT Calculate diffuse reflectance with added scatter losses
 
 % Step 1: Calculate diffuse reflectance using model
-mua = beta(1)*params(1,:) + (beta(1)/beta(2) - beta(1))*params(2,:) + beta(3)*params(3,:) + beta(4)*params(4,:) + beta(5);
+mua = beta(1)*beta(2)*params(1,:) + (beta(1)-beta(1)*beta(2))*params(2,:) + beta(3)*params(3,:) + beta(4)*params(4,:) + beta(5);
 
 mutp = mua + musp;
 mueff = sqrt(3.*mua.*mutp);
