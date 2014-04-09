@@ -17,6 +17,10 @@ end
 
 load('sbse_coeffs.mat')
 load('model_params.mat')
+param0 = [0.0076, 0.8421, -0.0017, 5.0798, 0.0321];
+lb = [0, 0.5, 0, 0, -0.2];
+ub = [0.01, 1, 0.0001, 10, 0.2];
+options = optimset('Algorithm','levenberg-marquardt');
 
 % For each file,
 
@@ -35,13 +39,18 @@ for i=1:1 %length(filenames)
        % Step 2.2: Correct for substitution error
        rsbse = corr_sbse(rmeas, sbse_coeffs);
        
-       % Step 2.3: Determine uncertainty?
+%        % Step 2.3: Determine uncertainty/weighting?
+%        Weights = 1./(N.*SE.^2);
+%        nonlinmodelW = @(B,t) Weights .* nonlinearmodel(B,t);
+%        x = lsqcurvefit(nonlinmodelW,x0,xdata,ydata,lb,ub);
        
        % Step 3: Fit model to measured data
        
        % Step 3.1: Determine coefficients using 'lsqcurvefit'
-       %options = optimset('Algorithm','levenberg-marquardt');
-       %[x,resnorm,residual,exitflag,output,lambda,jacobian] = lsqcurvefit(fun,x0,xdata,ydata,lb,ub,options)
+
+       %[conc,resnorm] =
+       %lsqcurvefit(@calc_rd,conc0,lambda,rmeas,[],[],options); calc_rd(beta,lambda,extco,musp)
+       [param,resnorm,residual,exitflag,output,LGlambda,jacobian] = lsqcurvefit(@(param0,lambda) calc_rd(param0,lambda,mua_param,musp),param0,lambda,rsbse,lb,ub,options);
        
        % Step 3.2: Determine confidence interval using 'nlparci'
        %ci = nlparci(beta,resid,'jacobian',J)
