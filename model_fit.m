@@ -16,7 +16,7 @@ else
 end
 
 load('sbse_coeffs.mat')
-%load('model_params.mat') %need to revisit
+load('model_params.mat')
 
 % For each file,
 
@@ -38,9 +38,13 @@ for i=1:1 %length(filenames)
        % Step 2.3: Determine uncertainty?
        
        % Step 3: Fit model to measured data
-       %rdscat = calc_rd(conc,mua_param,musp)
+       
        % Step 3.1: Determine coefficients using 'lsqcurvefit'
+       %options = optimset('Algorithm','levenberg-marquardt');
+       %[x,resnorm,residual,exitflag,output,lambda,jacobian] = lsqcurvefit(fun,x0,xdata,ydata,lb,ub,options)
+       
        % Step 3.2: Determine confidence interval using 'nlparci'
+       %ci = nlparci(beta,resid,'jacobian',J)
    else
        % Skip this file
    end
@@ -109,20 +113,45 @@ rsbse = ((sbse_coeffs(:,1).*rmeas' + sbse_coeffs(:,2))./(rmeas' + sbse_coeffs(:,
 
 end
 
-% function rdscat = calc_rd(beta,params,musp) %need to confirm
-% %RDSCAT Calculate diffuse reflectance with added scatter losses
-% 
-% % Step 1: Calculate diffuse reflectance using model
-% mua = beta(1)*beta(2)*params(1,:) + (beta(1)-beta(1)*beta(2))*params(2,:) + beta(3)*params(3,:) + beta(4)*params(4,:) + beta(5);
-% 
-% mutp = mua + musp;
-% mueff = sqrt(3.*mua.*mutp);
-% D = 1./(3.*mutp);
-% 
-% %A = 2.348; % for an nrel = 1.33 (for water)
-% A = 2.745; % for an nrel = 1.4 (for tissue)
-% 
-% rdcalc = musp./((mutp + mueff).*(1 + 2.*A.*D.*mueff));
-% 
-% 
-% end
+
+function rslcf = calc_rd(beta,lambda,extco,musp)
+%RDSCAT Calculate diffuse reflectance with added scatter losses
+
+% Step 1: Calculate diffuse reflectance using model (rdcalc)
+mua = beta(1)*beta(2)*extco(1,:) + beta(1)*(1-beta(2))*extco(2,:) + beta(3)*extco(3,:) + beta(4)*extco(4,:) + beta(5);
+
+mutp = mua + musp;
+mueff = sqrt(3.*mua.*mutp);
+D = 1./(3.*mutp);
+
+%A = 2.348; % for an nrel = 1.33 (for water)
+A = 2.745; % for an nrel = 1.4 (for tissue)
+
+rcalc = musp./((mutp + mueff).*(1 + 2.*A.*D.*mueff));
+
+% Step 2: Convolve spectrum with Gaussian
+fwhm = 10;
+mu = (lambda(end)-lambda(1))/2 + lambda(1);
+goflambda = exp(-(lambda-mu).^2/(2*(fwhm/2.3548)^2));
+result = conv(goflambda,rcalc);
+
+cones = ones(1,length(lambda));
+cal = conv(goflambda,cones);
+norm = result./cal;
+
+rconv = norm(302:918);
+
+% Step 3: Calculate and add in scatter losses
+
+for i=1:length(lambda)
+    if mua(i) <= 0.05*musp(i)
+        slcf(i) = 0.044*musp(i).^-0.6.*log(mua(i)) + 1.04;
+         if slcf(i) >= 1, slcf(i) = 1; end
+    else
+        slcf(i) = 1;
+    end
+end
+
+rslcf = slcf.*rconv;
+
+end
