@@ -40,6 +40,7 @@ for i=4:4 %length(filenames)
        rsbse = corr_sbse(rmeas, sbse_coeffs);
        
 %        % Step 2.3: Determine uncertainty/weighting?
+%        pc_stdev = mua_param(1,:)/5000 + 0.0015; % Percent Standard Deviation
 %        Weights = 1./(N.*SE.^2);
 %        nonlinmodelW = @(B,t) Weights .* nonlinearmodel(B,t);
 %        x = lsqcurvefit(nonlinmodelW,x0,xdata,ydata,lb,ub);
