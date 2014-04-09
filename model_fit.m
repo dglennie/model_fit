@@ -131,7 +131,14 @@ end
 function rslcf = calc_rd(beta,lambda,extco,musp)
 %RDSCAT Calculate diffuse reflectance with added scatter losses
 
-% Step 1: Calculate diffuse reflectance using model (rdcalc)
+% Step 1: Calculate diffuse reflectance using model (rcalc)
+
+% beta(1) = total hemoglobin
+% beta(2) = oxygen saturation
+% beta(3) = melanin
+% beta(4) = background
+% beta(5) = background shift
+
 mua = beta(1)*beta(2)*extco(1,:) + beta(1)*(1-beta(2))*extco(2,:) + beta(3)*extco(3,:) + beta(4)*extco(4,:) + beta(5);
 
 mutp = mua + musp;
