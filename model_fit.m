@@ -1,4 +1,4 @@
-function [param,residual,jacobian] = model_fit()
+function [param, eicorr] = model_fit()
 %MODEL_FIT Summary of this function goes here
 %   Employs fitting algorithm and 1D DRS model to extract chromophore
 %   concentrations from total diffuse reflectance spectrum from skin
@@ -39,7 +39,10 @@ for i=4:4 %length(filenames)
        % Step 2.2: Correct for substitution error
        rsbse = corr_sbse(rmeas, sbse_coeffs);
        
-%        % Step 2.3: Determine uncertainty/weighting?
+       % Step 2.3: Calculate corrected erythema index
+       eicorr = calc_ei(lambda, rsbse);
+       
+%        % Step 2.x: Determine uncertainty/weighting?
 %        pc_stdev = mua_param(1,:)/5000 + 0.0015; % Percent Standard Deviation
 %        Weights = 1./(N.*SE.^2);
 %        nonlinmodelW = @(B,t) Weights .* nonlinearmodel(B,t);
@@ -57,8 +60,9 @@ for i=4:4 %length(filenames)
         rslcf = calc_rd(param,lambda,mua_param,musp);
         plot(lambda,rsbse,lambda,rslcf)
        
-       % Step 3.2: Determine confidence interval using 'nlparci'
-       %ci = nlparci(param,residual,'jacobian',J)
+       % Step 3.2: Determine 95% confidence interval using 'nlparci'
+       ci = nlparci(param,residual,'jacobian',jacobian);
+       paramerror = mean(ci,2) - ci(:,1);
    else
        % Skip this file
    end
@@ -127,6 +131,36 @@ rsbse = ((sbse_coeffs(:,1).*rmeas' + sbse_coeffs(:,2))./(rmeas' + sbse_coeffs(:,
 
 end
 
+
+function eicorr = calc_ei(lambda, rsbse)
+
+% Calculate log inverse reflectance
+lir = log10(1./rsbse);
+
+% Determine location and values of EI input
+lambdaei = [510 543 563 576 610];
+for j=1:length(lambdaei)
+    [evalue(j), eminloc(j)] = min(abs(lambda-lambdaei(j)));
+    eival(j) = mean(lir(eminloc(j)-2:eminloc(j)+2));
+end
+
+% Calculate EI
+ei = 100*(eival(3) + 1.5*(eival(2) + eival(4)) - 2*(eival(1) + eival(5)));
+
+% Determine location and values of MI input
+lambdami = [650 700];
+for k=1:length(lambdami)
+    [mvalue(k), mminloc(k)] = min(abs(lambda-lambdami(k)));
+    mival(k) = mean(lir(mminloc(k)-15:mminloc(k)+15));
+end
+
+% Calculate MI
+mi = 100*(mival(1)-mival(2) + 0.015);
+
+% Apply MI to get corrected EI
+eicorr = ei*(1+0.04*mi);
+
+end
 
 function rslcf = calc_rd(beta,lambda,extco,musp)
 %RDSCAT Calculate diffuse reflectance with added scatter losses
