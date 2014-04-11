@@ -47,7 +47,8 @@ for i=1:length(filenames)
        eicorr = calc_ei(lambda, rsbse);
        
 %        % Step 2.x: Determine uncertainty/weighting?
-%        pc_stdev = mua_param(1,:)/5000 + 0.0015; % Percent Standard Deviation
+        pc_std = mua_param(1,:)/5000 + 0.0015; % Percent Standard Deviation
+        std = pc_std.*rsbse;
 %        Weights = 1./(N.*SE.^2);
 %        nonlinmodelW = @(B,t) Weights .* nonlinearmodel(B,t);
 %        x = lsqcurvefit(nonlinmodelW,x0,xdata,ydata,lb,ub);
@@ -60,7 +61,7 @@ for i=1:length(filenames)
        %param = real(param);
        %include flag to check if any parameters are at upper or lower bounds?
        
-        %rslcf = calc_rd(param,lambda,mua_param,musp);
+        rslcf = calc_rd(param,lambda,mua_param,musp);
         %plot(lambda,rsbse,lambda,rslcf)
        
        % Step 3.2: Determine 95% confidence interval using 'nlparci'
@@ -68,7 +69,10 @@ for i=1:length(filenames)
        paramerror = mean(ci,2) - ci(:,1);
        paramstd = paramerror./1.96;
        
-       output(m,:) = [param(1), paramstd(1), param(2), paramstd(2), param(3), paramstd(3), param(4), paramstd(4), param(5), paramstd(5), eicorr];
+       % Step 3.3: Determind goodness-of-fit
+       red_chi_square = sum((rsbse-rslcf).^2./std)/(length(rsbse)-length(param)-1);
+       
+       output(m,:) = [param(1), paramstd(1), param(2), paramstd(2), param(3), paramstd(3), param(4), paramstd(4), param(5), paramstd(5), red_chi_square, eicorr];
        
        m = m + 1;
    else
@@ -229,7 +233,7 @@ foldername = fileparts(end-1);
 xlsname = strcat(pathname, foldername, '.xlsx');
 xlsnamestr = xlsname{1};
 
-headings = {'Filename', 'Total Hemoglobin', 'std', 'Oxygen Saturation', 'std', 'Melanin', 'std', 'Background', 'std', 'Shift', 'std', 'EIc'};
+headings = {'Filename', 'Total Hemoglobin', 'std', 'Oxygen Saturation', 'std', 'Melanin', 'std', 'Background', 'std', 'Shift', 'std', 'Reduced Chi^2', 'EIc'};
 xlswrite(xlsnamestr, headings, 'Sheet1', 'A1')
 
 xlsfilenames = xlsfilenames';
