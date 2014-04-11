@@ -15,6 +15,9 @@ else
     error('One or more of the calibration files is missing. (black.Master.Scope or white.Master.Scope)')
 end
 
+m = 1;
+
+% Initial set up for fitting
 load('sbse_coeffs.mat')
 load('model_params.mat')
 param0 = [0.0076, 0.8421, -0.0017, 5.0798, 0.0321];
@@ -26,6 +29,7 @@ options = optimset('Algorithm','levenberg-marquardt');
 
 for i=4:4 %length(filenames)
    current_filename = filenames{i};
+   xlsfilenames{m} = current_filename(1:end-13);
    
    % Check if current file contains calibration or background measurement
    b = strfind(current_filename, 'black');
@@ -53,16 +57,21 @@ for i=4:4 %length(filenames)
        % Step 3.1: Determine coefficients using 'lsqcurvefit'
 
        [param,~,residual,~,~,~,jacobian] = lsqcurvefit(@(param0,lambda) calc_rd(param0,lambda,mua_param,musp),param0,lambda,rsbse,lb,ub,options);
-
        %param = real(param);
        %include flag to check if any parameters are at upper or lower bounds?
        
-        rslcf = calc_rd(param,lambda,mua_param,musp);
-        plot(lambda,rsbse,lambda,rslcf)
+        %rslcf = calc_rd(param,lambda,mua_param,musp);
+        %plot(lambda,rsbse,lambda,rslcf)
        
        % Step 3.2: Determine 95% confidence interval using 'nlparci'
        ci = nlparci(param,residual,'jacobian',jacobian);
        paramerror = mean(ci,2) - ci(:,1);
+       paramstd = paramerror./1.96;
+       
+       output(m,:) = [param(1), paramstd(1), param(2), paramstd(2), param(3), paramstd(3), param(4), paramstd(4), param(5), paramstd(5)];
+       output(m,11) = eicorr;
+       
+       m = m+1;
    else
        % Skip this file
    end
@@ -70,14 +79,17 @@ for i=4:4 %length(filenames)
 
 end
 
+print_to_excel(pathname, xlsfilenames, output)
+
+
 end
 
 function [pathname, filenames] = select_folder
 %SELECT_FOLDER Get a list of files from selected folder
 
-folder_name = uigetdir;
-pathname = strcat(folder_name,'\');
-files = dir(folder_name);
+foldername = uigetdir;
+pathname = strcat(foldername,'\');
+files = dir(foldername);
 
 strucell = struct2cell(files);
 strucell1 = strucell(1,:);
@@ -130,7 +142,6 @@ function rsbse = corr_sbse(rmeas, sbse_coeffs)
 rsbse = ((sbse_coeffs(:,1).*rmeas' + sbse_coeffs(:,2))./(rmeas' + sbse_coeffs(:,3)))';
 
 end
-
 
 function eicorr = calc_ei(lambda, rsbse)
 
@@ -209,4 +220,21 @@ end
 
 rslcf = slcf.*rconv;
 
+end
+
+function [] = print_to_excel(pathname, xlsfilenames, output)
+
+% Print results to XLSX file
+fileparts = strsplit(pathname, '\');
+foldername = fileparts(end-1);
+xlsname = strcat(pathname, foldername, '.xlsx');
+xlsnamestr = xlsname{1};
+
+headings = {'Filename', 'Total Hemoglobin', 'std', 'Oxygen Saturation', 'std', 'Melanin', 'std', 'Background', 'std', 'Shift', 'std', 'EIc'};
+xlswrite(xlsnamestr, headings, 'Sheet1', 'A1')
+
+xlsfilenames = xlsfilenames';
+xlswrite(xlsnamestr, xlsfilenames, 'Sheet1', 'A2')
+
+xlswrite(xlsnamestr, output, 'Sheet1', 'B2')
 end
