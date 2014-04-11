@@ -1,4 +1,4 @@
-function [param, eicorr] = model_fit()
+function [] = model_fit()
 %MODEL_FIT Summary of this function goes here
 %   Employs fitting algorithm and 1D DRS model to extract chromophore
 %   concentrations from total diffuse reflectance spectrum from skin
@@ -15,7 +15,7 @@ else
     error('One or more of the calibration files is missing. (black.Master.Scope or white.Master.Scope)')
 end
 
-m = 1;
+m = 1; % Initialized for Excel output
 
 % Initial set up for fitting
 load('sbse_coeffs.mat')
@@ -27,15 +27,15 @@ options = optimset('Algorithm','levenberg-marquardt');
 
 % For each file,
 
-for i=4:4 %length(filenames)
+for i=1:length(filenames)
    current_filename = filenames{i};
-   xlsfilenames{m} = current_filename(1:end-13);
    
    % Check if current file contains calibration or background measurement
    b = strfind(current_filename, 'black');
    w = strfind(current_filename, 'white');
    
    if isempty(b) && isempty(w) % If file doesn't contain cal or bg, continue
+       xlsfilenames{m} = current_filename(1:end-13);
        % Step 2: Process the measured data in current file
        % Step 2.1: Retrieve the modified measured reflectance
        rmeas = calc_rmeas(pathname, current_filename, black, white);
@@ -68,10 +68,9 @@ for i=4:4 %length(filenames)
        paramerror = mean(ci,2) - ci(:,1);
        paramstd = paramerror./1.96;
        
-       output(m,:) = [param(1), paramstd(1), param(2), paramstd(2), param(3), paramstd(3), param(4), paramstd(4), param(5), paramstd(5)];
-       output(m,11) = eicorr;
+       output(m,:) = [param(1), paramstd(1), param(2), paramstd(2), param(3), paramstd(3), param(4), paramstd(4), param(5), paramstd(5), eicorr];
        
-       m = m+1;
+       m = m + 1;
    else
        % Skip this file
    end
