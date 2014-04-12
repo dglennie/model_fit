@@ -47,7 +47,7 @@ for i=1:length(filenames)
        eicorr = calc_ei(lambda, rsbse);
        
 %        % Step 2.x: Determine uncertainty/weighting?
-        pc_std = mua_param(1,:)/5000 + 0.0015; % Percent Standard Deviation
+        pc_std = mua_param(1,:)/3500 + 0.002; % Percent Standard Deviation
         std = pc_std.*rsbse;
 %        Weights = 1./(N.*SE.^2);
 %        nonlinmodelW = @(B,t) Weights .* nonlinearmodel(B,t);
