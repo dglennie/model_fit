@@ -21,8 +21,8 @@ m = 1; % Initialized for Excel output
 load('sbse_coeffs.mat')
 load('model_params.mat')
 param0 = [0.0076, 0.8421, -0.0017, 5.0798, 0.0321];
-lb = [0, 0.5, -0.01, 0, -0.2];
-ub = [0.02, 1, 0.01, 100, 0.2];
+lb = [0, 0.3, -0.01, 0, -0.1];
+ub = [0.02, 1, 0.01, 50, 0.1];
 options = optimset('Algorithm','levenberg-marquardt');
 
 % For each file,
@@ -47,7 +47,9 @@ for i=1:length(filenames)
        eicorr = calc_ei(lambda, rsbse);
        
 %        % Step 2.x: Determine uncertainty/weighting?
-        pc_std = mua_param(1,:)/3500 + 0.002; % Percent Standard Deviation
+        %pc_std = mua_param(1,:)/4000 + 0.003; % Percent Standard Deviation
+        %pc_std = 0.01;
+        pc_std = mua_param(1,:)/5000+0.005;
         std = pc_std.*rsbse;
 %        Weights = 1./(N.*SE.^2);
 %        nonlinmodelW = @(B,t) Weights .* nonlinearmodel(B,t);
@@ -62,6 +64,7 @@ for i=1:length(filenames)
        %include flag to check if any parameters are at upper or lower bounds?
        
         rslcf = calc_rd(param,lambda,mua_param,musp);
+        %figure
         %plot(lambda,rsbse,lambda,rslcf)
        
        % Step 3.2: Determine 95% confidence interval using 'nlparci'
@@ -70,7 +73,7 @@ for i=1:length(filenames)
        paramstd = paramerror./1.96;
        
        % Step 3.3: Determind goodness-of-fit
-       red_chi_square = sum((rsbse-rslcf).^2./std)/(length(rsbse)-length(param)-1);
+       red_chi_square = sum((rsbse-rslcf).^2./(std).^2)/(length(rsbse)-length(param)-1);
        
        output(m,:) = [param(1), paramstd(1), param(2), paramstd(2), param(3), paramstd(3), param(4), paramstd(4), param(5), paramstd(5), red_chi_square, eicorr];
        
@@ -96,7 +99,17 @@ files = dir(foldername);
 
 strucell = struct2cell(files);
 strucell1 = strucell(1,:);
-filenames = strucell1(3:numel(files));
+
+q = 1;
+for n=3:numel(files)
+    thisfile = strucell1{n};
+    compstr = thisfile(end-11:end);
+    if strcmp('Master.Scope',compstr)
+        filenames(q) = strucell1(n);
+        q = q+1;
+    end
+end
+%filenames = strucell1(3:numel(files));
 
 end
 
