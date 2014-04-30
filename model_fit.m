@@ -42,10 +42,7 @@ for i=1:length(filenames)
        
        % Step 2.2: Correct for substitution error
        rsbse = corr_sbse(rmeas, sbse_coeffs);
-       
-       % Step 2.3: Calculate corrected erythema index
-       eicorr = calc_ei(lambda, rsbse);
-       
+
 %        % Step 2.x: Determine uncertainty/weighting?
         %pc_std = mua_param(1,:)/4000 + 0.003; % Percent Standard Deviation
         %pc_std = 0.01;
@@ -55,6 +52,9 @@ for i=1:length(filenames)
 %        nonlinmodelW = @(B,t) Weights .* nonlinearmodel(B,t);
 %        x = lsqcurvefit(nonlinmodelW,x0,xdata,ydata,lb,ub);
        
+       % Step 2.3: Calculate corrected erythema index
+       [eicorr, del_eicorr] = calc_ei(lambda, rsbse, std);
+        
        % Step 3: Fit model to measured data
        
        % Step 3.1: Determine coefficients using 'lsqcurvefit'
@@ -75,7 +75,7 @@ for i=1:length(filenames)
        % Step 3.3: Determind goodness-of-fit
        red_chi_square = sum((rsbse-rslcf).^2./(std).^2)/(length(rsbse)-length(param)-1);
        
-       output(m,:) = [param(1), paramstd(1), param(2), paramstd(2), param(3), paramstd(3), param(4), paramstd(4), param(5), paramstd(5), red_chi_square, eicorr];
+       output(m,:) = [param(1), paramstd(1), param(2), paramstd(2), param(3), paramstd(3), param(4), paramstd(4), param(5), paramstd(5), red_chi_square, eicorr, del_eicorr];
        
        m = m + 1;
    else
@@ -159,33 +159,40 @@ rsbse = ((sbse_coeffs(:,1).*rmeas' + sbse_coeffs(:,2))./(rmeas' + sbse_coeffs(:,
 
 end
 
-function eicorr = calc_ei(lambda, rsbse)
+function [eicorr, del_eicorr] = calc_ei(lambda, rsbse, std)
 
 % Calculate log inverse reflectance
 lir = log10(1./rsbse);
+del_lir = 0.43*(std./rsbse);
 
 % Determine location and values of EI input
 lambdaei = [510 543 563 576 610];
 for j=1:length(lambdaei)
-    [evalue(j), eminloc(j)] = min(abs(lambda-lambdaei(j)));
+    [~, eminloc(j)] = min(abs(lambda-lambdaei(j)));
     eival(j) = mean(lir(eminloc(j)-2:eminloc(j)+2));
+    del_eival(j) = mean(del_lir(eminloc(j)-2:eminloc(j)+2));
 end
 
 % Calculate EI
 ei = 100*(eival(3) + 1.5*(eival(2) + eival(4)) - 2*(eival(1) + eival(5)));
+del_ei = 100*(del_eival(3) + 1.5*(del_eival(2) + del_eival(4)) + 2*(del_eival(1) + del_eival(5)));
 
 % Determine location and values of MI input
 lambdami = [650 700];
 for k=1:length(lambdami)
-    [mvalue(k), mminloc(k)] = min(abs(lambda-lambdami(k)));
+    [~, mminloc(k)] = min(abs(lambda-lambdami(k)));
     mival(k) = mean(lir(mminloc(k)-15:mminloc(k)+15));
+    del_mival(k) = mean(del_lir(mminloc(k)-15:mminloc(k)+15));
+    
 end
 
 % Calculate MI
 mi = 100*(mival(1)-mival(2) + 0.015);
+del_mi = 100*(del_mival(1) + del_mival(2));
 
 % Apply MI to get corrected EI
 eicorr = ei*(1+0.04*mi);
+del_eicorr = eicorr*(del_ei/ei + 0.04*(del_ei/ei + del_mi/mi));
 
 end
 
@@ -246,7 +253,7 @@ foldername = fileparts(end-1);
 xlsname = strcat(pathname, foldername, '.xlsx');
 xlsnamestr = xlsname{1};
 
-headings = {'Filename', 'Total Hemoglobin', 'std', 'Oxygen Saturation', 'std', 'Melanin', 'std', 'Background', 'std', 'Shift', 'std', 'Reduced Chi^2', 'EIc'};
+headings = {'Filename', 'Total Hemoglobin', 'std', 'Oxygen Saturation', 'std', 'Melanin', 'std', 'Background', 'std', 'Shift', 'std', 'Reduced Chi^2', 'EIc', 'std'};
 xlswrite(xlsnamestr, headings, 'Sheet1', 'A1')
 
 xlsfilenames = xlsfilenames';
